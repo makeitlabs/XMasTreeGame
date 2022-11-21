@@ -6,41 +6,31 @@
 *  
 *  We cannot provide any support for this code, but feel free to use it as a 
 */
-​
 #include <EasyButton.h>
 #include <dmtimer.h>
 #include <FastLED.h>
-​
 #define BUTTON_ONE_LED_PIN 14// 9//right
 #define BUTTON_TWO_LED_PIN 15// 11 //left
 #define BUTTON_ONE_PIN 16 //10 //left
 #define BUTTON_TWO_PIN 17// 12//right
 EasyButton button1(BUTTON_ONE_PIN);
 EasyButton button2(BUTTON_TWO_PIN);
-​
 CRGBPalette16 currentPalette;
 TBlendType    currentBlending;
-​
 extern CRGBPalette16 myRedWhiteBluePalette;
 extern const TProgmemPalette16 myRedWhiteBluePalette_p PROGMEM;
-​
 //setup constants and variables for gameplay
 const int initGameSpeed = 500;
 const bool renderGameAsText = false;
-​
 #define NUM_STRIPS 10
 #define NUM_LEDS_PER_STRIP 50
-​
 bool screenSaverToggle = false;
 int screenSaverTimeOut = 0;
-​
 //define gameboard matrix
 const int rows = NUM_LEDS_PER_STRIP;
 const int columns = NUM_STRIPS;
 int gameArray[columns][rows];
-​
 CRGB leds[NUM_STRIPS][NUM_LEDS_PER_STRIP];
-​
 bool queueNewGame = false;
 bool gameOn = false;
 int screenSaverSelector = 1;
@@ -55,11 +45,9 @@ int waitForDropIncrease = 0;
 int waitForDropThreshold = 5; 
 int increaseDropThreshold = 35;
 DMTimer myTimer(initGameSpeed);
-​
 void setup() {
   Serial.begin(115200);
   // put your setup code here, to run once:
-​
 currentPalette = CloudColors_p;
     currentBlending = LINEARBLEND;
     
@@ -79,7 +67,6 @@ digitalWrite(BUTTON_TWO_LED_PIN, HIGH);
   FastLED.addLeds<WS2811, 9>(leds[6], NUM_LEDS_PER_STRIP);
   FastLED.addLeds<WS2811, 10>(leds[6], NUM_LEDS_PER_STRIP);
   FastLED.addLeds<WS2811, 11>(leds[6], NUM_LEDS_PER_STRIP);
-​
  // Initialize the button1
   button1.begin();
   // Initialize the button2
@@ -90,14 +77,11 @@ digitalWrite(BUTTON_TWO_LED_PIN, HIGH);
   button2.onPressed(onButton2Pressed);
   Serial.println("Ready......");
 }
-​
 void loop() {
   if(myTimer.isTimeReached()){ //check if execution time has been reached
     tickTock();
   }
-​
 }
-​
 void onButton1Pressed() {
   if(queueNewGame == false){
     if(gameOn == true){
@@ -112,7 +96,6 @@ void onButton1Pressed() {
     }
   }
 }
-​
 void onButton2Pressed() {
   if(queueNewGame == false){
     if(gameOn == true){
@@ -127,14 +110,12 @@ void onButton2Pressed() {
       }
   }
 }
-​
 void tickTock(){
   button1.read();
   button2.read();
   if(queueNewGame == true){
     startNewGame(); 
   }
-​
   switch(gameOn){
     case false:
       //screensaver mode  
@@ -158,7 +139,6 @@ waitForDrop = 0;
 waitForDropIncrease = 0;
 waitForDropThreshold = 5; 
 increaseDropThreshold = 35;
-​
   //clear gameboard
   for (int i = columns-1; i >=0; i--) {
         for (int j = rows-1; j >= 0; j--) {
@@ -170,15 +150,12 @@ increaseDropThreshold = 35;
   gameOn = true;
   queueNewGame = false;
 }
-​
 void stepGame(){
   //Serial.println("stepGame");
     countUntilDrop--;
-​
     if(countUntilDrop <= 0){
         dropPiece();
     }
-​
     for (int i = columns-1; i >=0; i--) {
       for (int j = rows-1; j >=0; j--) {
         int locValue = gameArray[i][j];
@@ -238,7 +215,6 @@ void stepGame(){
             leds[i][NUM_LEDS_PER_STRIP-j] = CRGB::Black;
             break;
         }
-​
         //check for player collision
         if(j == rows-1){
           if(gameArray[i][j]==1){
@@ -249,7 +225,6 @@ void stepGame(){
     }  
     //Serial.println("tick complete");
 }
-​
 void renderGameBoard() {
   if(renderGameAsText == false){
     //Serial.println("renderGameBoard");
@@ -312,7 +287,6 @@ void stepScreensaver() {
       }  
   }
 }
-​
 void checkCollision(int k) {
     if(playerX == k){
       //Collision found
@@ -320,7 +294,6 @@ void checkCollision(int k) {
       playLoseAnim();
     }
   }
-​
 void dropPiece() {
   // set random top row location
   countUntilDrop = levelStepper;
@@ -343,7 +316,6 @@ void dropPiece() {
     gameArray[ranX][0] = 1;
   }
 }
-​
 void playLoseAnim() {
   
   for(int k = 0; k < 3; k++) {
