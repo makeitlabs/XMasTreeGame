@@ -1,0 +1,12 @@
+[Unit]
+Description=XMas Tree Timer
+After=multi-user.target
+
+[Service]
+Type=idle
+User=bkg
+ExecStart=/bin/bash /home/bkg/xmaspi/kiosk.sh
+RestartSec=15s
+
+[Install]
+WantedBy=multi-user.target

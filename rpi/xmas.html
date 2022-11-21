@@ -1,0 +1,362 @@
+<html>
+<head>
+<script type="text/javascript">
+var myvid = document.getElementById('myvideo');
+
+
+	document.onkeypress = keypress;
+	topScore=0;
+titleAnimation=null;
+gameTimer = null;
+touchToStart = null;
+	function keypress(evt) {
+		if (evt.key=="b"){
+			startGame();
+		}
+		if (evt.key=="e"){
+			stopGame();
+		}
+		if (evt.key=="z"){
+			topScore=0;
+			document.getElementById("topscore").innerHTML="";
+			document.getElementById("start1").innerHTML="";
+			document.getElementById("start2").innerHTML="";
+			document.getElementById("start3").innerHTML="";
+			document.getElementById("Timer").innerHTML="";
+			if (gameTimer != null)
+				clearInterval(gameTimer);
+			gameTimer = null;
+			endBest();
+			endofStartGame();
+		}
+
+	}
+	function startGame() {
+
+	console.log("----StART GAMTE----");
+
+		if (touchToStart != null)
+			clearTimeout(touchToStart);
+		startTime=Date.now();
+		gameTimer = setInterval(function() {
+			var d=document.getElementById("Timer");
+			var e = (Date.now()-startTime)/100;
+			var s = Math.round(e/10);
+			var t = Math.round(e)%10;
+			d.innerHTML="Elapsed: "+String(s)+"."+String(t);
+			
+		},100);
+
+		var d=document.getElementById("topscore");
+		d.classList.add("fadein");
+		d.classList.remove("fadeout");
+		switchVideo(false);
+		var n=document.getElementById("newbest");
+		n.classList.add("newbesthide");
+		n.classList.remove("newbestshow");
+		var d=document.getElementById("start1");
+		d.innerHTML="<h1>Begin!</h1>";
+		d.classList.add("anim1");
+		d.classList.add("title");
+		d=document.getElementById("start2");
+		d.innerHTML="<h1>Begin!</h1>";
+		d.classList.add("anim2");
+		d.classList.add("title");
+		d=document.getElementById("start3");
+		d.innerHTML="<h1>Begin!</h1>";
+		d.classList.add("anim3");
+		d.classList.add("title");
+		var d=document.getElementById("backer");
+		d.style.backgroundColor="#00ff00";
+		d.classList.add("backer");
+		if (titleAnimation != null)
+			clearTimeout(titleAnimation);
+		titleAnimation = setTimeout(endofStartGame,6000);
+	}
+
+
+	function endofStartGame() {
+		console.log("EndofStartGame");
+		if (titleAnimation != null)
+			clearTimeout(titleAnimation);
+		titleAnimation = null;
+		var d=document.getElementById("start1");
+		d.classList.remove("anim1");
+		d.classList.remove("title");
+		d=document.getElementById("start2");
+		d.classList.remove("anim2");
+		d.classList.remove("title");
+		d=document.getElementById("start3");
+		d.classList.remove("anim3");
+		d.classList.remove("title");
+		var d=document.getElementById("backer");
+		d.classList.remove("backer");
+	}
+
+	function endBest() {
+		console.log("ClearNewBest");
+		if (bestInterval != null)
+			clearTimeout(bestInterval);
+		var n=document.getElementById("newbest");
+		n.classList.remove("newbestshow");
+		n.classList.add("newbesthide");
+		bestInterval = null;
+	}
+
+	function switchVideo(vid) {
+		var d=document.getElementById("myvideo");
+		if (vid)  {
+			d.setAttribute("src","/home/bkg/instruct.mp4");
+		} else  {
+			d.setAttribute("src","/home/bkg/MakeItLabsLogoFly5.mp4");
+		}
+	}
+
+	function stopGame() {
+		console.log("StopGame");
+		if (gameTimer != null)
+			clearInterval(gameTimer);
+		gameTimer = null;
+		endofStartGame();
+		var d=document.getElementById("Timer");
+		var e = (Date.now()-startTime)/100;
+		var s = Math.round(e/10);
+		var t = Math.round(e)%10;
+		d.innerHTML="Elapsed: "+String(s)+"."+String(t);
+
+		var d=document.getElementById("start1");
+		d.innerHTML="<h2>Game Over</h2>";
+		d.classList.remove("anim1");
+		d=document.getElementById("start2");
+		d.innerHTML="<h2>Game Over</h2>";
+		d.classList.remove("anim2");
+		d=document.getElementById("start3");
+		d.innerHTML="<h2>Game Over</h2>";
+		d.classList.remove("anim3");
+		var d=document.getElementById("backer");
+		d.classList.remove("backer");
+		//d.animation="none";
+		setTimeout(function() {
+		var d=document.getElementById("backer");
+
+			var d=document.getElementById("start1");
+			d.innerHTML="<h2>Game Over</h2>";
+			d.classList.add("anim1");
+			d.classList.add("title");
+
+			d=document.getElementById("start2");
+			d.innerHTML="<h2>Game Over</h2>";
+			d.classList.add("anim2");
+			d.classList.add("title");
+
+			d=document.getElementById("start3");
+			d.innerHTML="<h2>Game Over</h2>";
+			d.classList.add("anim3");
+			d.classList.add("title");
+
+			var d=document.getElementById("backer");
+			d.style.backgroundColor="#ff0000";
+			d.classList.add("backer");
+			//d.animation="";
+		},1);
+		titleAnimation = setTimeout(endofStartGame,6000);
+
+		if ((topScore == 0) || (e > topScore)) {
+			var n=document.getElementById("newbest");
+			n.classList.remove("newbesthide");
+			n.classList.add("newbestshow");
+			bestInterval = setInterval(endBest,9000);
+			var d=document.getElementById("topscore");
+			d.innerHTML="Best Time: "+String(s)+"."+String(t);
+			topScore = e;
+		}
+
+		touchToStart = setTimeout(function() {
+			var n=document.getElementById("Timer");
+			n.innerHTML="";
+			var d=document.getElementById("topscore");
+			d.classList.add("fadeout");
+			d.classList.remove("fadein");
+			switchVideo(true);
+			},10000);
+
+	}
+
+
+
+</script>
+
+
+
+<style>
+@keyframes backer {
+	0%   {opacity:0%;}
+	15%  {opacity:100%;}
+	50%  {opacity:60%;}
+	100% {opacity:0%;}
+}
+
+.backer {
+z-index:55;
+width:800px;
+height:465px;
+position:absolute;
+top:0px;
+left:0px;
+animation-name:backer;
+animation-duration: 6s;
+animation-iteration-count: 1;
+opacity:0%;
+}
+
+.fadein {
+opacity:100%;
+transition: opacity 2s;
+}
+.fadeout {
+opacity:0%;
+transition: opacity 2s;
+}
+
+.backerdisabled: {
+z-index:100;
+background-color:red;
+width:800px;
+height:450px;
+position:absolute;
+top:0px;
+left:0px;
+}
+
+@keyframes timeranim {
+	0%   {opacity:0%;}
+	100% {opacity:100%;}
+}
+@keyframes newbest {
+	0%   {opacity:0%;transform:rotate(-180deg);}
+	20%  {opacity:0%;transform:rotate(-180deg);}
+	40%  {opacity:100%;transform:rotate(20deg);}
+	50%  {opacity:100%;transform:rotate(10deg);}
+	60%  {opacity:100%;transform:rotate(20deg);}
+	70%  {opacity:100%;transform:rotate(10deg);}
+	80%  {opacity:100%;transform:rotate(20deg);}
+	100% {opacity:0%;transform:rotate(180deg);}
+}
+@keyframes example {
+  0%   {xbackground-color: red;opacity:0%;right:200vw}
+  15%  {xbackground-color: yellow;opacity:100%;right:10vw}
+  50%  {xbackground-color: blue;opacity:100%;right:10vw}
+  100% {xbackground-color: green;opacity:0%;right:-10vw}
+}
+.newbest {
+z-index:105;
+position:absolute;
+top:200px;
+left:30px;
+  color: yellow;
+  text-shadow: 1px 1px 2px black, 
+  		0 0 25px black, 
+  		0 0 55px black, 
+		0 0 5px black;
+  font-family:"Trebuchet MS", Helvetica, sans-serif;
+  font-weight:900;
+  font-size:86px;
+}
+
+.newbestshow {
+animation-name: newbest;
+animation-duration: 8s;
+animation-iteration-count: 1;
+opacity:0%;
+}
+.newbesthide {
+opacity:0%;
+}
+
+.topscore {
+z-index:99;
+position:absolute;
+top:330px;
+left:30px;
+padding:50px;
+  color: white;
+  text-shadow: 1px 1px 2px black, 
+  		0 0 25px black, 
+  		0 0 55px black, 
+		0 0 5px black;
+  font-family:"Trebuchet MS", Helvetica, sans-serif;
+  font-weight:900;
+  font-size:56px;
+}
+.title {
+z-index:99;
+xbackground-color:red;
+position:absolute;
+top:50px;
+width:550px;
+padding:50px;
+animation-name: example;
+animation-duration: 6s;
+animation-iteration-count: infinite;
+  color: white;
+  text-shadow: 1px 1px 2px black, 
+  		0 0 25px black, 
+  		0 0 55px black, 
+		0 0 5px black;
+  xbox-shadow: 10px 10px 5px 12px lightblue;
+  font-family:"Trebuchet MS", Helvetica, sans-serif;
+  font-weight:900;
+  font-size:68px;
+}
+
+.timer {
+z-index:98;
+position:absolute;
+top:50px;
+left:15;
+padding:20px;
+width:100%;
+animation-name: timeranim;
+animation-duration: 3s;
+animation-iteration-count: 1;
+  color: white;
+  text-shadow: 1px 1px 2px black, 
+  		0 0 25px black, 
+  		0 0 55px black, 
+		0 0 5px black;
+  xbox-shadow: 10px 10px 5px 12px lightblue;
+  font-family:"Trebuchet MS", Helvetica, sans-serif;
+  font-weight:900;
+  font-size:90px;
+}
+
+body {
+	overflow:hidden;
+	background-color:black;
+}
+</style>
+	</head>
+	<body>
+<div id="backer" class="backerdisabled" style="background-color:red"></div>
+<video id="myvideo" width=100% height=100% style="z-index:0;position:absolute;top:0px;left:0px" autoplay loop preload playsinline muted>
+  <source id="videosource" class="active" src="/home/bkg/instruct.mp4" />
+  <xxsource src="/home/bkg/MakeItLabsLogoFly5.mp4" />
+  <xxsource class="active" src="/home/bkg/MakeItLabsLogoFly5.mp4" />
+  Your browser does not support the video tag.
+</video>
+<!--
+<div class="title">
+	<h1>Testing</h1>
+	<p>This is a test</p>
+</div>
+-->
+
+<div id="Timer" class="timer"></div>
+<div id="start1"></div>
+<div id="start2"></div>
+<div id="start3"></div>
+<div id="topscore" class="topscore"></div>
+<div id="newbest" class="newbest newbesthide">NEW BEST TIME!</div>
+</body>
+</html
+
