@@ -1,0 +1,13 @@
+[Unit]
+Description=GPIO to Keyboard shim
+After=multi-user.target
+
+[Service]
+Type=idle
+User=root
+ExecStartPre=/bin/bash /root/kbshim_setup.sh
+ExecStart=/root/kbshim /sys/class/gpio/gpio20/value /sys/class/gpio/gpio21/value
+RestartSec=15s
+
+[Install]
+WantedBy=multi-user.target
