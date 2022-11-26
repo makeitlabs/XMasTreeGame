@@ -1,46 +1,42 @@
-/* Light game for Christmas tree v1
-*  made by Bob Clagett at I Like To Make Stuff
-*  
-*  This is PROTOTYPE code, not meant to be fully optimized or even correct.
-*  I tried to leave comments for a while, then ran out of time.
-*  
-*  We cannot provide any support for this code, but feel free to use it as a 
-*/
-​
+/*
+ * Light game for Christmas tree v1
+ * made by Bob Clagett at I Like To Make Stuff
+ * Modififed by Brad Goodman, Marc Hebert, Peter Vatne
+ */
 #include <EasyButton.h>
 #include <dmtimer.h>
 #include <FastLED.h>
-​
-#define BUTTON_ONE_LED_PIN 14// 9//right
-#define BUTTON_TWO_LED_PIN 15// 11 //left
-#define BUTTON_ONE_PIN 16 //10 //left
-#define BUTTON_TWO_PIN 17// 12//right
+
+// Pins 2 through 11 reserved for LED strips
+#define BUTTON_ONE_LED_PIN 14 //right
+#define BUTTON_TWO_LED_PIN 16 //left
+#define BUTTON_ONE_PIN 15     //left
+#define BUTTON_TWO_PIN 17     //right
+#define OUT_STARTGAME_PIN 22
+#define OUT_ENDGAME_PIN 24
+
 EasyButton button1(BUTTON_ONE_PIN);
 EasyButton button2(BUTTON_TWO_PIN);
-​
+
 CRGBPalette16 currentPalette;
 TBlendType    currentBlending;
-​
 extern CRGBPalette16 myRedWhiteBluePalette;
 extern const TProgmemPalette16 myRedWhiteBluePalette_p PROGMEM;
-​
+
 //setup constants and variables for gameplay
 const int initGameSpeed = 500;
 const bool renderGameAsText = false;
-​
+
 #define NUM_STRIPS 10
 #define NUM_LEDS_PER_STRIP 50
-​
 bool screenSaverToggle = false;
 int screenSaverTimeOut = 0;
-​
+
 //define gameboard matrix
 const int rows = NUM_LEDS_PER_STRIP;
 const int columns = NUM_STRIPS;
 int gameArray[columns][rows];
-​
-CRGB leds[NUM_STRIPS][NUM_LEDS_PER_STRIP];
-​
+CRGB leds[columns][rows];
 bool queueNewGame = false;
 bool gameOn = false;
 int screenSaverSelector = 1;
@@ -55,18 +51,23 @@ int waitForDropIncrease = 0;
 int waitForDropThreshold = 5; 
 int increaseDropThreshold = 35;
 DMTimer myTimer(initGameSpeed);
-​
+
 void setup() {
   Serial.begin(115200);
+  
   // put your setup code here, to run once:
-​
-currentPalette = CloudColors_p;
-    currentBlending = LINEARBLEND;
+  currentPalette = CloudColors_p;
+  currentBlending = LINEARBLEND;
     
-pinMode(BUTTON_ONE_LED_PIN, OUTPUT);
-pinMode(BUTTON_TWO_LED_PIN, OUTPUT);
-digitalWrite(BUTTON_ONE_LED_PIN, HIGH);
-digitalWrite(BUTTON_TWO_LED_PIN, HIGH);
+  pinMode(BUTTON_ONE_LED_PIN, OUTPUT);
+  pinMode(BUTTON_TWO_LED_PIN, OUTPUT);
+  pinMode(OUT_STARTGAME_PIN, OUTPUT);
+  pinMode(OUT_ENDGAME_PIN, OUTPUT);
+  digitalWrite(OUT_STARTGAME_PIN, HIGH);
+  digitalWrite(OUT_ENDGAME_PIN, HIGH);
+  digitalWrite(BUTTON_ONE_LED_PIN, HIGH);
+  digitalWrite(BUTTON_TWO_LED_PIN, HIGH);
+
   //setup LEDs
    // tell FastLED there's XX NEOPIXEL leds on pin YY
   FastLED.addLeds<WS2811, 2>(leds[0], NUM_LEDS_PER_STRIP);
@@ -76,11 +77,11 @@ digitalWrite(BUTTON_TWO_LED_PIN, HIGH);
   FastLED.addLeds<WS2811, 6>(leds[4], NUM_LEDS_PER_STRIP);
   FastLED.addLeds<WS2811, 7>(leds[5], NUM_LEDS_PER_STRIP);
   FastLED.addLeds<WS2811, 8>(leds[6], NUM_LEDS_PER_STRIP);
-  FastLED.addLeds<WS2811, 9>(leds[6], NUM_LEDS_PER_STRIP);
-  FastLED.addLeds<WS2811, 10>(leds[6], NUM_LEDS_PER_STRIP);
-  FastLED.addLeds<WS2811, 11>(leds[6], NUM_LEDS_PER_STRIP);
-​
- // Initialize the button1
+  FastLED.addLeds<WS2811, 9>(leds[7], NUM_LEDS_PER_STRIP);
+  FastLED.addLeds<WS2811, 10>(leds[8], NUM_LEDS_PER_STRIP);
+  FastLED.addLeds<WS2811, 11>(leds[9], NUM_LEDS_PER_STRIP);
+ 
+  // Initialize the button1
   button1.begin();
   // Initialize the button2
   button2.begin();
@@ -88,23 +89,38 @@ digitalWrite(BUTTON_TWO_LED_PIN, HIGH);
   button1.onPressed(onButton1Pressed);
   // Add the callback function to be called when the button2 is pressed.
   button2.onPressed(onButton2Pressed);
-  Serial.println("Ready......");
+  
+  Serial.println("Ready...");
 }
-​
+
 void loop() {
-  if(myTimer.isTimeReached()){ //check if execution time has been reached
+  if (myTimer.isTimeReached()) { //check if execution time has been reached
     tickTock();
   }
-​
+  
+  if (Serial.available()) {
+    char c = Serial.read();
+    if (c == 'l') {
+      onButton1Pressed();
+    }
+    if (c == 'r') {
+      onButton2Pressed();      
+    }
+    if (c == 'b') {
+      renderGameBoardAsText();
+    }
+  }
 }
-​
+
 void onButton1Pressed() {
-  if(queueNewGame == false){
-    if(gameOn == true){
+  if (queueNewGame == false) {
+    if (gameOn == true) {
       Serial.println("left");
-      if(playerX>0){
+      if (playerX > 0) {
         playerX--;
       }
+      Serial.print("Player moves to column ");
+      Serial.println(playerX);
    } else {
     //start a new game!!!!
       Serial.println("clicked, start a new one");
@@ -112,14 +128,16 @@ void onButton1Pressed() {
     }
   }
 }
-​
+
 void onButton2Pressed() {
-  if(queueNewGame == false){
-    if(gameOn == true){
+  if (queueNewGame == false) {
+    if (gameOn == true) {
       Serial.println("right");
-        if(playerX<columns-1){
+        if (playerX < columns - 1) {
           playerX++;
         }
+        Serial.print("Player moves to column ");
+        Serial.println(playerX);
     } else {
       //start a new game!!!!
         Serial.println("clicked, start a new one");
@@ -127,15 +145,16 @@ void onButton2Pressed() {
       }
   }
 }
-​
-void tickTock(){
+
+void tickTock() {
   button1.read();
   button2.read();
-  if(queueNewGame == true){
+  
+  if (queueNewGame == true) {
     startNewGame(); 
   }
-​
-  switch(gameOn){
+  
+  switch(gameOn) {
     case false:
       //screensaver mode  
       stepScreensaver();
@@ -143,105 +162,115 @@ void tickTock(){
     case true:
       stepGame();
       break;
-   }
-  renderGameBoard();
-}
+  }
+   
+  if (renderGameAsText) {
+    renderGameBoardAsText();
+  } else {
+    renderGameBoardAsLeds();    
+  }
+} 
+
 void startNewGame() {
   Serial.println("HERE WE GO!");
-playerX = 3;
-gameLevel = 0;
-levelStepper = 30;  
-levelIncrease = 3; //how many clicks to condense next drop
-numToDrop = 3; //initial # to drop at once (random position, potential overlap)
-countUntilDrop = 0;
-waitForDrop = 0;
-waitForDropIncrease = 0;
-waitForDropThreshold = 5; 
-increaseDropThreshold = 35;
-​
+  playerX = 3;
+  gameLevel = 0;
+  levelStepper = 30;  
+  levelIncrease = 3; //how many clicks to condense next drop
+  numToDrop = 3; //initial # to drop at once (random position, potential overlap)
+  countUntilDrop = 0;
+  waitForDrop = 0;
+  waitForDropIncrease = 0;
+  waitForDropThreshold = 5; 
+  increaseDropThreshold = 35;
+  
   //clear gameboard
-  for (int i = columns-1; i >=0; i--) {
-        for (int j = rows-1; j >= 0; j--) {
-          gameArray[i][j] = 0;
-        }
-   }
+  for (int i = columns - 1; i >= 0; i--) {
+    for (int j = rows - 1; j >= 0; j--) {
+      gameArray[i][j] = 0;
+    }
+  }
+   
+  digitalWrite(OUT_STARTGAME_PIN,LOW);
+  digitalWrite(OUT_ENDGAME_PIN,HIGH);
   //reset all light colors;
   // play startup sequence
   gameOn = true;
   queueNewGame = false;
 }
-​
-void stepGame(){
-  //Serial.println("stepGame");
+
+void stepGame() {
+    //Serial.println("stepGame");
     countUntilDrop--;
-​
-    if(countUntilDrop <= 0){
-        dropPiece();
+    if (countUntilDrop <= 0) {
+      dropPiece();
     }
-​
-    for (int i = columns-1; i >=0; i--) {
-      for (int j = rows-1; j >=0; j--) {
+    for (int i = columns - 1; i >= 0; i--) {
+      for (int j = rows - 1; j >= 0; j--) {
         int locValue = gameArray[i][j];
-        int above = j-1;
-        if(above>=0){
-          
+        int above = j - 1;
+        if (above >= 0) {
           int ceilingValue = gameArray[i][above];
-          if(ceilingValue==1){
+          if (ceilingValue == 1) {
+#if 0
+            if (i == 0) {
+              Serial.print("Moving snowflake in column 0 to row ");
+              Serial.println(j);
+              delay(1000);
+            }
+#endif
             gameArray[i][j] = ceilingValue; //inherit value from location above
             gameArray[i][above] = 0; //clear location above
             locValue = gameArray[i][j];
           } else {
             locValue = gameArray[i][j] = 0; //empties bottom row when nothing is above it 
-          }
-          
+          } 
         }
-        if(j==rows-1 && i==playerX){
+        if (j == rows - 1 && i == playerX) {
           locValue = 2;//show player position
         }
-         switch (locValue) {
+        switch (locValue) {
           case 2://player
-            switch(gameLevel){
+            switch(gameLevel) {
               case 0:
               case 1:
               case 2:
-                leds[i][NUM_LEDS_PER_STRIP-j] = CRGB::Blue;
+                leds[i][NUM_LEDS_PER_STRIP - j - 1] = CRGB::Blue;
                 break;
               case 3:
               case 4:
               case 5:
-                leds[i][NUM_LEDS_PER_STRIP-j] = CRGB::Yellow;
+                leds[i][NUM_LEDS_PER_STRIP - j - 1] = CRGB::Yellow;
                 break;
               case 6:
               case 7:
               case 8:
-                leds[i][NUM_LEDS_PER_STRIP-j] = CRGB::Violet;
+                leds[i][NUM_LEDS_PER_STRIP - j - 1] = CRGB::Violet;
                 break;
               case 9:
               case 10:
               case 11:
-                leds[i][NUM_LEDS_PER_STRIP-j] = CRGB::Green;  //I haven't seen anyone get past this point.  It's basically impossible
+                leds[i][NUM_LEDS_PER_STRIP - j - 1] = CRGB::Green;  //I haven't seen anyone get past this point.  It's basically impossible
                 break;
               case 12:
               case 13:
               case 14:
-                leds[i][NUM_LEDS_PER_STRIP-j] = CRGB::Navy;
+                leds[i][NUM_LEDS_PER_STRIP - j - 1] = CRGB::Navy;
                 break;
-               default:
-                leds[i][NUM_LEDS_PER_STRIP-j] = CRGB::Red;
-            }
-            
+              default:
+                leds[i][NUM_LEDS_PER_STRIP - j - 1] = CRGB::Red;
+            }    
             break;
           case 1:
-            leds[i][NUM_LEDS_PER_STRIP-j] = CRGB::White;
+            leds[i][NUM_LEDS_PER_STRIP - j - 1] = CRGB::White;
             break;
           case 0:
-            leds[i][NUM_LEDS_PER_STRIP-j] = CRGB::Black;
+            leds[i][NUM_LEDS_PER_STRIP - j - 1] = CRGB::Black;
             break;
         }
-​
         //check for player collision
-        if(j == rows-1){
-          if(gameArray[i][j]==1){
+        if (j == rows - 1) {
+          if (gameArray[i][j] == 1) {
             checkCollision(i);
           }
         }
@@ -249,23 +278,23 @@ void stepGame(){
     }  
     //Serial.println("tick complete");
 }
-​
-void renderGameBoard() {
-  if(renderGameAsText == false){
+
+void renderGameBoardAsLeds() {
     //Serial.println("renderGameBoard");
     FastLED.show();
     delay(30);
+}
     
-  } else {
+void renderGameBoardAsText() {
     Serial.println("----------------------");
       // This outer loop will go over each strip, one at a time
-    for (int i = columns-1; i >=0; i--) {
-        for (int j = rows-1; j >= 0; j--) {
+    for (int i = columns - 1; i >= 0; i--) {
+        for (int j = rows - 1; j >= 0; j--) {
         int locValue = gameArray[i][j];
-        if(j==0 && i==playerX){
+        if (j == 0 && i == playerX) {
            Serial.print("X");
         } else {
-          if(locValue == 0){
+          if (locValue == 0) {
             Serial.print(" ");
           } else{
             Serial.print(locValue);
@@ -274,37 +303,33 @@ void renderGameBoard() {
       }
       Serial.println("|");
     }
-  }
 }
+
 void stepScreensaver() {
   //Serial.println("stepScreensaver ");
   //TODO: make this more interesting
   static uint8_t colorIndex = 0;
-  screenSaverTimeOut+=1000;
- screenSaverToggle = !screenSaverToggle;
- Serial.print("SS Select ");
- Serial.print(screenSaverSelector);
- Serial.print(" Toggle ");
- Serial.println(screenSaverToggle);
- 
-  if(screenSaverTimeOut > 10000){
+  screenSaverTimeOut += 1000;
+  screenSaverToggle = !screenSaverToggle;
+
+  if (screenSaverTimeOut > 10000) {
      screenSaverTimeOut = 0;
      uint16_t clr = CRGB::Black;
-      for(int i = 0; i < columns; i++) { 
+      for (int i = 0; i < columns; i++) { 
         // This inner loop will go over each led in the current strip, one at a time
-        for(int j = 0; j < rows; j++) {
-          switch(screenSaverSelector){
+        for (int j = 0; j < rows; j++) {
+          switch(screenSaverSelector) {
             case 0:
-              if(screenSaverToggle){
-                leds[i][NUM_LEDS_PER_STRIP-j] = CRGB::Red;
+              if (screenSaverToggle) {
+                leds[i][NUM_LEDS_PER_STRIP - j - 1] = CRGB::Red;
               } else {
-                leds[i][NUM_LEDS_PER_STRIP-j] = CRGB::Green;  
+                leds[i][NUM_LEDS_PER_STRIP - j - 1] = CRGB::Green;  
               }
-            break;
+              break;
             case 1:
-            colorIndex +=3;
-              leds[i][NUM_LEDS_PER_STRIP-j] = ColorFromPalette( currentPalette, colorIndex, 255, currentBlending);
-            break;
+              colorIndex += 3;
+              leds[i][NUM_LEDS_PER_STRIP - j - 1] = ColorFromPalette( currentPalette, colorIndex, 255, currentBlending);
+              break;
             }
           
         }
@@ -312,51 +337,55 @@ void stepScreensaver() {
       }  
   }
 }
-​
+
 void checkCollision(int k) {
-    if(playerX == k){
-      //Collision found
-      gameOn = false;
-      playLoseAnim();
-    }
+  if (playerX == k) {
+    //Collision found
+    gameOn = false;
+    playLoseAnim();
   }
-​
+}
+  
 void dropPiece() {
   // set random top row location
   countUntilDrop = levelStepper;
   waitForDrop++;
-  if(waitForDrop==waitForDropThreshold && levelStepper>=0){
+  if (waitForDrop == waitForDropThreshold && levelStepper >= 0) {
     waitForDrop = 0;
-    levelStepper-=levelIncrease; 
+    levelStepper -= levelIncrease; 
     gameLevel++; 
   }
   waitForDropIncrease++;
-  if(waitForDropIncrease == increaseDropThreshold){
+  if (waitForDropIncrease == increaseDropThreshold) {
     waitForDropIncrease = 0;
     numToDrop++; 
   }
-  if( numToDrop >NUM_STRIPS-2){
-    numToDrop = NUM_STRIPS-2; //Always leave at least 2 positions open ofr the player
+  if (numToDrop > NUM_STRIPS - 2) {
+    numToDrop = NUM_STRIPS - 2; //Always leave at least 2 positions open for the player
   }
-  for( int z=0;z<numToDrop;z++){
+  for (int z = 0; z < numToDrop; z++) {
     int ranX = random(0, columns);
+    Serial.print("Dropping snowflake in column ");
+    Serial.println(ranX);
     gameArray[ranX][0] = 1;
   }
 }
-​
+
 void playLoseAnim() {
   
-  for(int k = 0; k < 3; k++) {
+  digitalWrite(OUT_STARTGAME_PIN,HIGH);
+  digitalWrite(OUT_ENDGAME_PIN,LOW);
     Serial.println("YOU LOSE!");
-    for(int i = 0; i < columns; i++) {
-      for(int j = 0; j < rows; j++) {
-        leds[i][NUM_LEDS_PER_STRIP-j] = CRGB::Red; 
+    for (int k = 0; k < 3; k++) {
+    for (int i = 0; i < columns; i++) {
+      for (int j = 0; j < rows; j++) {
+        leds[i][NUM_LEDS_PER_STRIP - j - 1] = CRGB::Red; 
       }
     }
     FastLED.show();
     delay(250);
-    for(int i = 0; i < columns; i++) {
-      for(int j = 0; j < rows; j++) {
+    for (int i = 0; i < columns; i++) {
+      for (int j = 0; j < rows; j++) {
         leds[i][j] = CRGB::Black;
       }
     }
@@ -364,8 +393,13 @@ void playLoseAnim() {
     delay(250);
     //switch scrrensaver
     screenSaverSelector++;
-    if (screenSaverSelector > 1){
+    if (screenSaverSelector > 1) {
       screenSaverSelector = 0;  
     }
   }
+
+    Serial.println("end lose");
+  
+  digitalWrite(OUT_STARTGAME_PIN,HIGH);
+  digitalWrite(OUT_ENDGAME_PIN,HIGH);
 }
